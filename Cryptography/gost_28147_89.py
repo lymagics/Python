@@ -1,3 +1,9 @@
+"""GOST 28147-89 block cipher
+   key: 128 bit
+   block: 64 bit
+"""
+
+
 sbox1 = (
     (4, 10, 9, 2, 13, 8, 0, 14, 6, 11, 1, 12, 7, 15, 5, 3),
     (14, 11, 4, 12, 6, 13, 15, 10, 2, 3, 8, 1, 0, 7, 5, 9),
@@ -8,6 +14,7 @@ sbox1 = (
     (13, 11, 4, 1, 3, 15, 5, 9, 0, 10, 14, 7, 6, 8, 2, 12),
     (1, 15, 13, 0, 5, 7, 10, 4, 9, 2, 3, 14, 6, 11, 8, 12),
 )
+
 
 sbox = [
     [15,12,	2,	10,	6,	4,	5,	0,	7,	9,	14,	13,	1,	11,	8,	3],
@@ -20,8 +27,10 @@ sbox = [
     [1,	10,	6,	8,	15, 11,	0,	4,	12,	3,	5,	9,	7,	13,	2,	14]
 ]
 
+
 # 11111111111111111111111111111111 (32 x 1 bit)
 MAX32 = 2**32-1
+
 
 #Encode to num function
 def encode_to_num(text:str):
@@ -30,6 +39,7 @@ def encode_to_num(text:str):
         num_arr.append(ord(sym))
     return num_arr
 
+
 #Encode to num russian letters function
 def encode_to_num_russian(text:str):
     num_arr = []
@@ -37,12 +47,14 @@ def encode_to_num_russian(text:str):
         num_arr.append(ord(sym)-912)
     return num_arr
 
+
 #Encode to symbol function
 def encode_to_symbol(num_arr:int):
     text = ''
     for num in num_arr:
         text += chr(num)
     return text
+
 
 #Join 8 bits array to 64 bit block
 def join_8bits_to_64bits(arr_8b:int):
@@ -52,10 +64,12 @@ def join_8bits_to_64bits(arr_8b:int):
         block_64b ^= num #|
     return block_64b
 
+
 #Join two 32 bit block to one 64 bit block
 def join_32bits_to_64bits(L:int,R:int):
     block_64b = (L << 32) ^ R #|
     return block_64b
+
 
 #Join 8 bits array to 256 bit block
 def join_8bits_to_256bits(arr_8b:int):
@@ -65,6 +79,7 @@ def join_8bits_to_256bits(arr_8b:int):
         block_256b ^= num #|
     return block_256b
 
+
 #Join 4 bits array to 32 bit block
 def join_4bits_to_32bits(arr_4b:int):
     block_32b = 0
@@ -72,6 +87,7 @@ def join_4bits_to_32bits(arr_4b:int):
         block_32b <<= 4
         block_32b ^= num #|
     return block_32b
+
 
 #Split 64 bit block to 8 bits array
 def split_64bits_to_8bits(block_64b:int):
@@ -82,6 +98,7 @@ def split_64bits_to_8bits(block_64b:int):
         arr_8b.append(temp)
     return arr_8b
 
+
 #Split 256 bits block to 32 bits array
 def split_256_bits_to_32bits(block_256b:int):
     arr_32b = []
@@ -91,11 +108,13 @@ def split_256_bits_to_32bits(block_256b:int):
         arr_32b.append(temp)
     return arr_32b
 
+
 #Split 64 bits block on two 32 bits block
 def split_64bits_to_32bits(block_64b:int):
     R = block_64b & MAX32
     L = block_64b >> 32
     return L,R
+
 
 #Split 32 bits to 4 bits array
 def split_32bits_to_4bits(block_32b:int):
@@ -118,12 +137,14 @@ def convert_to_8(num_msg:int):
         num_msg.append(0)
     return num_msg,missing
 
+
 #Join input message to 64 bits blocks
 def join_input_message_to_64bits(msg_arr:int):
     message_64b = []
     for i in range(0,len(msg_arr),8):
         message_64b.append(join_8bits_to_64bits(msg_arr[i:i+8]))
     return message_64b
+
 
 #Sblock permutation
 def s_permutation(arr_4b:int):
@@ -132,6 +153,7 @@ def s_permutation(arr_4b:int):
         new_arr_4b.append(sbox[i][arr_4b[i]]&15)
     return new_arr_4b
 
+
 #Final permutation
 def permutation(block_32b:int):
     arr_4b = split_32bits_to_4bits(block_32b)
@@ -139,22 +161,31 @@ def permutation(block_32b:int):
     new_block_32b = join_4bits_to_32bits(new_arr_4b)
     return new_block_32b
 
+
 #lshift block
 def lshift(block:int,shift:int):
     return ((block << shift) ^ (block >> 32-shift))&MAX32 #|
 
+
+#32 bit block transformation
 def _f(part:int,key:int):
     part = part^key #temp = part^key
     part = permutation(part)
     part = lshift(part,11)
     return part
 
+
+#Feistel encryption round
 def round_feistel_encrypt(L:int,R:int,key:int):
     return R,L^_f(R,key) 
 
+
+#Feistel decryption round
 def round_feistel_decrypt(L:int,R:int,key:int):
     return R ^ _f(L,key),L
 
+
+#Main encryption function
 def gost_encrypt(block:int,keys:int):
     L,R = split_64bits_to_32bits(block)
     for i in range(24):
@@ -163,6 +194,8 @@ def gost_encrypt(block:int,keys:int):
         L,R = round_feistel_encrypt(L,R,keys[7-i])
     return join_32bits_to_64bits(L,R)
 
+
+#Main decryption function
 def gost_decrypt(block:int,key:int):
     L,R = split_64bits_to_32bits(block)
     for i in range(8):
@@ -171,10 +204,14 @@ def gost_decrypt(block:int,key:int):
         L,R = round_feistel_decrypt(L,R,key[(7-i)%8])
     return join_32bits_to_64bits(L,R)
 
+
+#Split 256bit key to 8 x 32 bit keys
 def get_keys(key:str):
     keys = encode_to_num(key)
     return split_256_bits_to_32bits(join_8bits_to_256bits(keys))
 
+
+#Main
 def main():
     msg = 'Hello world!'
     num_msg = encode_to_num(msg)
@@ -214,6 +251,7 @@ def main():
         for el in block:
             result.append(el)
     print('Decrypted message:',result)
-    
 
-main()
+   
+if __name__ == '__main__':
+    main()

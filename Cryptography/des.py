@@ -1,5 +1,12 @@
+"""DES block cipher
+   key: 56 bit
+   block: 64 bit
+"""
+
+
 MAX32 = 2**32-1
 MAX28 = 2**28-1
+
 
 E = [
     32,	1,	2,	3,	4,	5,
@@ -11,6 +18,7 @@ E = [
     24,	25,	26,	27,	28,	29,
     28,	29,	30,	31,	32,	1
 ]
+
 
 sbox = [
     [#Sbox 1
@@ -63,27 +71,32 @@ sbox = [
     ]
 ]
 
+
 P = [16,	7,	20,	21,	29,	12,	28,	17,
     1,	15,	23,	26,	5,	18,	31,	10,
     2,	8,	24,	14,	32,	27,	3,	9,
     19,	13,	30,	6,	22,	11,	4,	25
 ]
 
+
 KP1 = [
     57,	49,	41,	33,	25,	17,	9,	1,	58,	50,	42,	34,	26,	18,
     10,	2,	59,	51,	43,	35,	27,	19,	11,	3,	60,	52,	44,	36
 ]
+
 
 KP2 = [
     63,	55,	47,	39,	31,	23,	15,	7,	62,	54,	46,	38,	30,	22,
     14,	6,	61,	53,	45,	37,	29,	21,	13,	5,	28,	20,	12,	4
 ]
 
+
 KCP = [
     14,	17,	11,	24,	1,	5,	3,	28,	15,	6,	21,	10,	23,	19,	12,	4,
     26,	8,	16,	7,	27,	20,	13,	2,	41,	52,	31,	37,	47,	55,	30,	40,
     51,	45,	33,	48,	44,	49,	39,	56,	34,	53,	46,	42,	50,	36,	29,	32
 ]
+
 
 IP = [
     58,	50,	42,	34,	26,	18,	10,	2,	60,	52,	44,	36,	28,	20,	12,	4,
@@ -92,6 +105,7 @@ IP = [
     61,	53,	45,	37,	29,	21,	13,	5,	63,	55,	47,	39,	31,	23,	15,	7
 ]
 
+
 FP = [
     40,	8,	48,	16,	56,	24,	64,	32,	39,	7,	47,	15,	55,	23,	63,	31,
     38,	6,	46,	14,	54,	22,	62,	30,	37,	5,	45,	13,	53,	21,	61,	29,
@@ -99,18 +113,24 @@ FP = [
     34,	2,	42,	10,	50,	18,	58,	26,	33,	1,	41,	9,	49,	17,	57,	25
 ]
 
+
+#Encode to num function
 def encode_to_num(text:str):
     num_arr = []
     for letter in text:
         num_arr.append(ord(letter))
     return num_arr
 
+
+#Encode to symbol function
 def encode_to_symbol(num_arr:int):
     text = ''
     for num in num_arr:
         text+=chr(num)
     return text
 
+
+#Complite block less than 64 bit with adding zeros to the end
 def complite_block(num_arr:int):
     missing = 0
     length = len(num_arr)
@@ -121,6 +141,8 @@ def complite_block(num_arr:int):
         num_arr.append(0)
     return num_arr
 
+
+#Join 8 bits array to 64 bit block
 def join_8bits_to_64bits(arr8b:int):
     block_64b = 0
     for num in arr8b:
@@ -128,33 +150,36 @@ def join_8bits_to_64bits(arr8b:int):
         block_64b |= num
     return block_64b
 
+
+#Join two 32 bit block to one 64 bit block
 def join_32bits_to_64bits(L:int,R:int):
     return (L << 32) ^ R
 
+
+#Join input text to 64 bit blocks
 def join_input_to_64bits(num_arr:int):
     block_64b = []
     for i in range(0,len(num_arr),8):
         block_64b.append(join_8bits_to_64bits(num_arr[i:i+8]))
     return block_64b
 
-def join_8bits_to_64bits(arr_8b:int):
-    block_64b = 0
-    for num in arr_8b:
-        block_64b <<= 8
-        block_64b |= num
-    return block_64b
 
+#Split 64 bits block on two 32 bits block
 def split_64bits_to_32bits(block64b:int):
     L = (block64b >> 32)
     R = block64b & MAX32
     return L,R
 
+
+#Split 64 bit block to 8 bits array
 def split_64bits_to_8bits(block64:int):
     arr_8 = []
     for i in range(56,-1,-8):
         arr_8.append((block64 >> i)&0b11111111)
     return arr_8
 
+
+#Split 32 bit block to 4 bits array
 def split_32bits_to_4bits(block32b:int):
     arr_4b = []
     for shift in range(28,-1,-4):
@@ -162,6 +187,8 @@ def split_32bits_to_4bits(block32b:int):
         arr_4b.append(temp)
     return arr_4b
 
+
+#Split 48 bit block to 6 bits array
 def split_48bits_to_6bits(block_48:int):
     arr_6bits = []
     for shift in range(42,-1,-6):
@@ -169,6 +196,8 @@ def split_48bits_to_6bits(block_48:int):
         arr_6bits.append(temp)
     return arr_6bits
 
+
+#Join 4 bits array to 32 bit block
 def join_4bits_to_32bits(arr_4b:int):
     block_32b = 0
     for num in arr_4b:
@@ -176,9 +205,13 @@ def join_4bits_to_32bits(arr_4b:int):
         block_32b |= num
     return block_32b
 
+
+#Join two 28 bit blocks to one 56 bit
 def join_28bits_to_56bits(C:int,D:int):
     return ((C << 28) | D)
 
+
+#Expand 4 bit block to 6 bit block
 def expand_4bits_to_6bits(arr_4b):
     arr_6b = []
     for i in range(8):
@@ -192,11 +225,15 @@ def expand_4bits_to_6bits(arr_4b):
         arr_6b.append(temp)
     return arr_6b
 
+
+#Get extra and middle bits 011110 -> extra 00 middle 1111
 def get_extra_and_middle_bits(_6b):
     extra = (_6b&0b000001) | ((_6b&0b100000) >> 4)
     middle = (_6b&0b011110) >> 1
     return extra,middle
 
+
+#Subtitution function
 def subtitution(block_6b:int):
     arr_4b = []
     for i in range(8):
@@ -204,6 +241,8 @@ def subtitution(block_6b:int):
         arr_4b.append(sbox[i][extra][middle])
     return arr_4b
 
+
+#Permutation function
 def permutation(b_32:int):
     new_b32 = 0
     for i in range(32):
@@ -211,6 +250,8 @@ def permutation(b_32:int):
         new_b32 = new_b32 | ((b_32 >> (P[i]-1))&0b01)
     return new_b32
 
+
+#Pertumes key 56 bit to 28 bit
 def key_permutation_56bits_to_28bits(key_64b:int):
     C,D = 0,0
     for i in range(28):
@@ -220,6 +261,8 @@ def key_permutation_56bits_to_28bits(key_64b:int):
         D |= ((key_64b >> (64 - KP2[i]))&0b01) 
     return C,D
 
+
+#Constructs key from 56 bit to 48 bit
 def key_construction_permutation(block_56b:int):
     key_48b = 0
     for i in range(48):
@@ -227,6 +270,8 @@ def key_construction_permutation(block_56b:int):
         key_48b |= (block_56b >> (KCP[i]-1))&0b01
     return key_48b
 
+
+#Expand 32 bit block to 48 bit
 def expansion(block_32b:int):
     block_48b = 0
     for i in range(48):
@@ -234,6 +279,8 @@ def expansion(block_32b:int):
         block_48b |= (block_32b >> (E[i]-1))&0b01
     return block_48b
 
+
+#Main key generation function
 def generate_key(key:int):
     key_56b = join_8bits_to_64bits(key)
     key_list = []
@@ -253,9 +300,13 @@ def generate_key(key:int):
         key_list.append(temp_key)
     return key_list
 
+
+#Left bit shift
 def lshift(key_28b:int,shift:int):
     return ((key_28b << shift) | (key_28b >> (28-shift)))&MAX28
 
+
+#Initial permutation
 def initial_permutation(block_64b:int):
     new_block64 = 0
     for i in range(64):
@@ -263,6 +314,8 @@ def initial_permutation(block_64b:int):
         new_block64 |= (block_64b >> (IP[i]-1))&0b01
     return new_block64
 
+
+#Final permutation
 def final_permutation(block_64b:int):
     new_block64 = 0
     for i in range(64):
@@ -270,6 +323,8 @@ def final_permutation(block_64b:int):
         new_block64 |= (block_64b >> (FP[i]-1))&0b01
     return new_block64
 
+
+#32 bit block transformation
 def _f(part:int,key:int):
     part = expansion(part)
     part ^= key
@@ -278,12 +333,18 @@ def _f(part:int,key:int):
     part = join_4bits_to_32bits(part)
     return permutation(part)
 
+
+#Feistel encryption round
 def round_feistel_encrypt(L:int,R:int,key:int):
     return R,L^_f(R,key) 
 
+
+#Feistel decryption round
 def round_feistel_decrypt(L:int,R:int,key:int):
     return R ^ _f(L,key),L
 
+
+#Main encryption function
 def des_encrypt(block_64b:int,keys:int):
     block_64b = initial_permutation(block_64b)
     L,R = split_64bits_to_32bits(block_64b)
@@ -292,6 +353,8 @@ def des_encrypt(block_64b:int,keys:int):
         L,R = round_feistel_encrypt(L,R,keys[i])
     return final_permutation(join_32bits_to_64bits(L,R))
 
+
+#Main decryption function
 def des_decrypt(block_64b:int,keys:int):
     block_64b = initial_permutation(block_64b)
     L,R = split_64bits_to_32bits(block_64b)
@@ -300,6 +363,8 @@ def des_decrypt(block_64b:int,keys:int):
         L,R = round_feistel_decrypt(L,R,keys[i])
     return final_permutation(join_32bits_to_64bits(L,R))
 
+
+#Main
 def main():
     key = 'des_key_'
     num_key = encode_to_num(key)
@@ -332,6 +397,8 @@ def main():
             decrypted_8b.append(el)
 
     print('Decrypted:',decrypted_8b)
-    
-main()
+
+
+if __name__ == '__main__':
+    main()
 
