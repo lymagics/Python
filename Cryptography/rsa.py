@@ -1,118 +1,151 @@
 """RSA public-key cryptosystem
-   key: 2,048 to 4,096 bit
-   Note: This is a simplified version(key lenght is not 1,024 - 2,048 bit)
+   key: 1,024 bit(number of bits in the modulus)
+   pair of primes of roughly 512 bits
 """
+import random 
 
 
 #Encode to num function
-def encode_to_num(text:str):
-    num_arr = []
-    for sym in text:
-        num_arr.append(ord(sym))
-    return num_arr
+def encode_to_num(text):
+	num_message = []
+	for symbol in text:
+		num_message.append(ord(symbol))
+	return num_message
 
 
 #Encode to symbol function
-def encode_to_symbol(num_arr:int):
-    text = ''
-    for num in num_arr:
-        text += chr(num)
-    return text
+def encode_to_symbol(num_text):
+	text_message = ''
+	for num in num_text:
+		text_message += chr(num)
+	return text_message
 
 
-#Prime test
-def is_prime(num:int):
-    for i in range(2,num):
-        if num % i == 0:
+#Miller-rabin prime test
+def miller_rabin(n, k):
+
+    if n == 2:
+        return True
+
+    if n % 2 == 0:
+        return False
+
+    r, s = 0, n - 1
+    while s % 2 == 0:
+        r += 1
+        s //= 2
+    for _ in range(k):
+        a = random.randrange(2, n - 1)
+        x = pow(a, s, n)
+        if x == 1 or x == n - 1:
+            continue
+        for _ in range(r - 1):
+            x = pow(x, 2, n)
+            if x == n - 1:
+                break
+        else:
             return False
     return True
 
 
-#Prime number generator
-def generate_prime():
-    from random import randint
-    prime = randint(2,100)
-    while is_prime(prime) == False:
-        prime = randint(2,100)
-    return prime
+#Generate odd number for prime generator
+def generate_odd(n_bits):
+	num = random.randint(2**(n_bits-1),2**n_bits-1)
+	if num % 2 == 0:
+		num += 1
+	return num
 
 
-#Prime number eiler function
-def eiler_function(p:int,q:int):
-    return (p - 1)*(q - 1)
+#Prime number generator function
+def generate_prime(n_bits):
+	while True:
+		num = generate_odd(n_bits)
+		if miller_rabin(num,40):
+			return num
 
 
-#Mutual simplicity test
-def is_mutually_simple(f_num:int,s_num:int):
-    if f_num > s_num:
-        for i in range(2,s_num+1):
-            if f_num % i == 0 and s_num % i == 0:
-                return False
-        return True
-    if f_num < s_num:
-        for i in range(2,f_num+1):
-            if f_num % i == 0 and s_num % i == 0:
-                return False
-        return True
-    if f_num == s_num:
-        return False if is_prime(f_num) else True
+#Fast exponentiation function
+def mod_power(number,degree,mod):
+	res = 1
+	while degree > 0:
+		if degree & 1 == 1:
+			res = (res * number) % mod 
+		number = (number * number) % mod 
+		degree >>= 1
+	return res
 
 
-#Open key generator
-def generate_e(eiler_f:int):
-    e = generate_prime()
-    while e < eiler_f == False and is_mutually_simple(e,eiler_f) == False:
-        e = generate_prime()
-    return e
+#Find revers element which will be our private key(based on extended euclidean algorithm)
+def find_reverse(b,a):
+	# a = b * q + r
+	q_list = []
+	q = a // b
+	r = a - b * q
+	q_list.append(q)
+	mod = a
+	while r != 0:
+		a = b
+		b = r 
+		q = a // b 
+		r = a - b * q
+		q_list.append(q)
 
+	x = [1,0]
+	y = [0,1]
 
-#Private key generator
-def generate_d(e:int,eiler_f:int):
-    from random import randint
-    d = randint(2,100)
-    while (d*e)%eiler_f != 1:
-        d = randint(2,10000)
-    return d
+	for i in range(2,len(q_list)+1):
+		x.append(x[i-2] - q_list[i-2]*x[i-1])
+		y.append(y[i-2] - q_list[i-2]*y[i-1])
+
+	reverse = y[len(q_list)] % mod
+	
+	return reverse
 
 
 #Encryption function
-def encrypt(e,num_msg,mod):
-    encrypted = []
-    for el in num_msg:
-        encrypted.append((el**e)%mod)
-    return encrypted
+def rsa_encrypt(num_message,open_key,mod):
+	encrypted = []
+	for num in num_message:
+		encrypted.append(mod_power(num,open_key,mod))
+	return encrypted
 
 
 #Decryption function
-def decrypt(d,encrypted,mod):
-    decrypted = []
-    for el in encrypted:
-        decrypted.append((el**d)%mod)
-    return decrypted
+def rsa_decrypt(encrypted,private_key,mod):
+	decryted = []
+	for num in encrypted:
+		decryted.append(mod_power(num,private_key,mod))
+	return decryted
 
 
 #Main
 def main():
-    msg = 'Hello world!'
-    print('Plain text:',msg)
-    num_msg = encode_to_num(msg)
+	message = 'Hello World!'
+	num_message = encode_to_num(message)
+	print('Plain:',num_message)
 
-    p = generate_prime()
-    q = generate_prime()
-    mod = p*q
+	q = generate_prime(512)
+	p = generate_prime(512)
+	mod = q * p
 
-    eiler_f = eiler_function(p,q)
-    e = generate_e(eiler_f)
-    d = generate_d(e,eiler_f)
+	eiler_f = (q - 1)*(p - 1)
+	e_exp = 65537
+	while mod % e_exp == 0:
+		e_exp = generate_prime(512)
 
-    print('Open key:',e,mod)
+	d_exp = find_reverse(e_exp,eiler_f)
 
-    encrypted = encrypt(e,num_msg,mod)
-    print('Encrypted:',encode_to_symbol(encrypted))
+	print('Open key:',e_exp)
+	print('Private key:',d_exp)
 
-    decrypted = decrypt(d,encrypted,mod)
-    print('Decrypted:',encode_to_symbol(decrypted))
+	encrypted = rsa_encrypt(num_message,e_exp,mod)
+	print('Encrypted:',encrypted)
+
+	decryted = rsa_decrypt(encrypted,d_exp,mod)
+	print('Decrypted:',decryted)
+	
+	pass
 
 
 if __name__ == '__main__':
-    main()
+	main()
