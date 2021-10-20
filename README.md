@@ -5,4 +5,4 @@
 <blockquote><h5>-GOST 28147-89 block cipher.</h5></blockquote>
 <blockquote><h5>-RC4 stream cipher.</h5></blockquote>
 <blockquote><h5>-RSA public-key cryptosystem.</h5></blockquote>
-
+<blockquote><h5>-Elliptic curve class.</h5></blockquote>
