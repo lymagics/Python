@@ -67,6 +67,10 @@ class EllipticCurve:
 			P = self.add_point(P,P)
 			n >>= 1
 		return Q
+
+
+	def negative(self,P):
+		return (P[0],-P[1]%self.p)
 	
 
 def main():
