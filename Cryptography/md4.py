@@ -1,7 +1,5 @@
 """MD4(Message Digest 4) hash function
-
-	output: 128 bit
-
+   output: 128 bit
 """
 
 MASK_32 = 0x100000000
